@@ -45,6 +45,7 @@ function renderHistory() {
     const matchSearch = doc.supplier.toLowerCase().includes(filter) || doc.invoice.toLowerCase().includes(filter);
     return matchMonth && matchSearch;
   }).forEach(doc => {
+    const iframeId = 'preview-' + doc.id;
     const card = document.createElement('div');
     card.className = 'p-4 bg-white rounded-2xl shadow';
     card.innerHTML = `
@@ -53,10 +54,30 @@ function renderHistory() {
       <p><strong>Дата документа:</strong> ${doc.docDate}</p>
       <p><strong>Подписал:</strong> ${doc.signer}</p>
       <p><strong>Дата подписания:</strong> ${doc.signedDate}</p>
-      <a href="${doc.fileData}" target="_blank" class="text-blue-500 underline">Посмотреть документ</a>
+      <div class='flex gap-2 mt-2'>
+        <button onclick="togglePreview('${iframeId}')" class="bg-indigo-500 text-white p-2 rounded hover:bg-indigo-600">Показать/Скрыть документ</button>
+        <button onclick="downloadPDF('${doc.fileData}', '${doc.supplier}_${doc.invoice}.pdf')" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Скачать PDF</button>
+      </div>
+      <iframe id="${iframeId}" src="${doc.fileData}" style="display:none" width="100%" height="500px" class="border mt-4 rounded"></iframe>
     `;
     container.appendChild(card);
   });
+}
+
+function togglePreview(id) {
+  const iframe = document.getElementById(id);
+  if (iframe.style.display === 'none') {
+    iframe.style.display = 'block';
+  } else {
+    iframe.style.display = 'none';
+  }
+}
+
+function downloadPDF(dataUrl, filename) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
 }
 
 function setCurrentMonth() {
