@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang='ru'>
+<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<title>Отклоненные документы</title>
+<link href='https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' rel='stylesheet'></head>
+<body class='bg-gray-100 p-6'>
+<div class='max-w-5xl mx-auto'>
+
+<nav class="flex flex-wrap gap-4 mb-6" id="navMenu">
+  <a href="upload.html" class="nav-link bg-blue-500 text-white p-2 rounded">Загрузка</a>
+  <a href="pending.html" class="nav-link bg-yellow-500 text-white p-2 rounded">Ожидают подписи</a>
+  <a href="history.html" class="nav-link bg-green-500 text-white p-2 rounded">История</a>
+  <a href="rejected.html" class="nav-link bg-red-500 text-white p-2 rounded">Отклоненные</a>
+</nav>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const links = document.querySelectorAll('.nav-link');
+  const path = window.location.pathname.split('/').pop();
+  links.forEach(link => {
+    if (link.getAttribute('href') === path) {
+      link.classList.add('ring', 'ring-offset-2', 'ring-indigo-500');
+    }
+  });
+});
+</script>
+
+<h1 class='text-3xl font-bold mb-6'>Отклоненные документы</h1>
+<div id='rejectedList' class='space-y-4'></div>
+</div>
+<script>
+const rejectedKey = 'rejected_docs';
+
+function renderRejectedDocs() {
+  const container = document.getElementById('rejectedList');
+  container.innerHTML = '';
+  const docs = JSON.parse(localStorage.getItem(rejectedKey)) || [];
+  docs.forEach(doc => {
+    const card = document.createElement('div');
+    card.className = 'p-4 bg-white rounded-2xl shadow';
+    card.innerHTML = `
+      <p><strong>Поставщик:</strong> ${doc.supplier}</p>
+      <p><strong>Счет-фактура:</strong> ${doc.invoice}</p>
+      <p><strong>Дата документа:</strong> ${doc.docDate}</p>
+      <a href="${doc.fileData}" target="_blank" class="text-blue-500 underline">Посмотреть документ</a>
+    `;
+    container.appendChild(card);
+  });
+}
+
+renderRejectedDocs();
+</script>
+</body></html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html><html lang='ru'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Загрузка документа</title><link href='https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' rel='stylesheet'></head><body class='bg-gray-100 p-6'><div class='max-w-4xl mx-auto'>
+<nav class="flex flex-wrap gap-4 mb-6" id="navMenu">
+  <a href="upload.html" class="nav-link bg-blue-500 text-white p-2 rounded">Загрузка</a>
+  <a href="pending.html" class="nav-link bg-yellow-500 text-white p-2 rounded">Ожидают подписи</a>
+  <a href="history.html" class="nav-link bg-green-500 text-white p-2 rounded">История</a>
+  <a href="rejected.html" class="nav-link bg-red-500 text-white p-2 rounded">Отклоненные</a>
+</nav>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const links = document.querySelectorAll('.nav-link');
+  const path = window.location.pathname.split('/').pop();
+  links.forEach(link => {
+    if (link.getAttribute('href') === path) {
+      link.classList.add('ring', 'ring-offset-2', 'ring-indigo-500');
+    }
+  });
+});
+</script>
+<h1 class='text-3xl font-bold mb-6'>Бухгалтерия: Загрузка документа</h1><form id='uploadForm' class='space-y-4 bg-white p-6 rounded-2xl shadow'><input type='text' id='supplier' placeholder='Поставщик' class='w-full p-2 border rounded'><input type='text' id='invoice' placeholder='Номер счета-фактуры' class='w-full p-2 border rounded'><input type='date' id='docDate' class='w-full p-2 border rounded'><input type='file' id='docFile' accept='application/pdf' class='w-full p-2 border rounded'><button type='submit' class='bg-blue-500 text-white p-2 rounded hover:bg-blue-600'>Загрузить документ</button></form></div><script>const pendingKey='pending_docs';const uploadForm=document.getElementById('uploadForm');uploadForm.addEventListener('submit',(e)=>{e.preventDefault();const supplier=document.getElementById('supplier').value;const invoice=document.getElementById('invoice').value;const docDate=document.getElementById('docDate').value;const fileInput=document.getElementById('docFile');if(!supplier||!invoice||!docDate||!fileInput.files.length){alert('Пожалуйста, заполните все поля и выберите файл.');return;}const reader=new FileReader();reader.onload=function(event){const newDoc={id:Date.now(),supplier,invoice,docDate,fileData:event.target.result};const pendingDocs=JSON.parse(localStorage.getItem(pendingKey))||[];pendingDocs.push(newDoc);localStorage.setItem(pendingKey,JSON.stringify(pendingDocs));uploadForm.reset();alert('Документ успешно загружен!');};reader.readAsDataURL(fileInput.files[0]);});</script></body></html>
