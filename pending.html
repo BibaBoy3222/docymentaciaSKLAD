@@ -2,9 +2,11 @@
 <html lang='ru'>
 <head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>
 <title>Ожидают подписи</title>
-<link href='https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' rel='stylesheet'></head>
+<link href='https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' rel='stylesheet'>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'></script>
+</head>
 <body class='bg-gray-100 p-6'>
-<div class='max-w-4xl mx-auto'>
+<div class='max-w-5xl mx-auto'>
 
 <nav class="flex flex-wrap gap-4 mb-6" id="navMenu">
   <a href="upload.html" class="nav-link bg-blue-500 text-white p-2 rounded">Загрузка</a>
@@ -25,8 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <h1 class='text-3xl font-bold mb-6'>Склад: Ожидают подписи</h1>
-<div id='pendingList' class='space-y-4'></div>
+<div id='pendingList' class='space-y-6'></div>
 </div>
+
 <script>
 const pendingKey = 'pending_docs';
 const signedKey = 'signed_docs';
@@ -38,20 +41,97 @@ function renderPendingDocs() {
   const docs = JSON.parse(localStorage.getItem(pendingKey)) || [];
   docs.forEach(doc => {
     const card = document.createElement('div');
-    card.className = 'p-4 bg-white rounded-2xl shadow';
+    card.className = 'p-6 bg-white rounded-2xl shadow space-y-4';
+
+    const formId = 'form-' + doc.id;
+    const tableId = 'table-' + doc.id;
+    const iframeId = 'preview-' + doc.id;
+
     card.innerHTML = `
-      <p><strong>Поставщик:</strong> ${doc.supplier}</p>
-      <p><strong>Счет-фактура:</strong> ${doc.invoice}</p>
-      <p><strong>Дата документа:</strong> ${doc.docDate}</p>
-      <a href="${doc.fileData}" target="_blank" class="text-blue-500 underline">Открыть документ</a>
-      <div class="mt-4 space-y-2">
-        <input type="text" placeholder="ФИО подписавшего" class="signerInput w-full p-2 border rounded">
-        <button onclick="signDoc(${doc.id})" class="bg-green-500 text-white p-2 rounded w-full">Подтвердить</button>
-        <button onclick="rejectDoc(${doc.id})" class="bg-red-500 text-white p-2 rounded w-full">Отклонить</button>
+      <div>
+        <p><strong>Поставщик:</strong> ${doc.supplier}</p>
+        <p><strong>Счет-фактура:</strong> ${doc.invoice}</p>
+        <p><strong>Дата документа:</strong> ${doc.docDate}</p>
       </div>
+      <div class="flex gap-2 mt-2">
+        <button onclick="togglePreview('${iframeId}')" class="bg-indigo-500 text-white p-2 rounded hover:bg-indigo-600">Показать/Скрыть документ</button>
+        <button onclick="downloadPDF('${doc.fileData}', '${doc.supplier}_${doc.invoice}.pdf')" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Скачать PDF</button>
+      </div>
+      <iframe id="${iframeId}" src="${doc.fileData}" style="display:none" width="100%" height="500px" class="border mt-4 rounded"></iframe>
+
+      <form id="${formId}" class="space-y-4 mt-6">
+        <div class="flex flex-col gap-2">
+          <input type="text" value="${doc.supplier}" readonly class="p-2 border rounded" placeholder="Поставщик">
+          <input type="text" value="${doc.invoice}" readonly class="p-2 border rounded" placeholder="Номер документа">
+          <input type="date" value="${doc.docDate}" readonly class="p-2 border rounded" placeholder="Дата документа">
+        </div>
+        <h2 class="text-xl font-semibold">Материалы</h2>
+        <table id="${tableId}" class="w-full border rounded-2xl overflow-hidden">
+          <thead><tr class="bg-gray-200"><th class="p-2">Наименование материала</th><th class="p-2">Ед. изм</th><th class="p-2">Кол-во</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button type="button" onclick="addMaterial('${tableId}')" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Добавить материал</button>
+        <textarea placeholder="Комментарий" class="p-2 border rounded w-full" id="comment-${doc.id}"></textarea>
+        <input type="date" class="p-2 border rounded w-full" id="arrival-${doc.id}" placeholder="Дата поступления на склад">
+        <div class="flex flex-col gap-2">
+          <input type="text" placeholder="ФИО подписавшего" class="signerInput p-2 border rounded">
+          <button type="button" onclick="generateExcel('${doc.id}', '${tableId}')" class="bg-purple-500 text-white p-2 rounded hover:bg-purple-600">Сформировать Excel</button>
+          <button type="button" onclick="signDoc(${doc.id})" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Подтвердить приход</button>
+          <button type="button" onclick="rejectDoc(${doc.id})" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Отклонить документ</button>
+        </div>
+      </form>
     `;
     container.appendChild(card);
   });
+}
+
+function togglePreview(id) {
+  const iframe = document.getElementById(id);
+  iframe.style.display = iframe.style.display === 'none' ? 'block' : 'none';
+}
+
+function downloadPDF(dataUrl, filename) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
+}
+
+function addMaterial(tableId) {
+  const table = document.getElementById(tableId).querySelector('tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><input type="text" class="w-full p-2 border rounded"></td>
+    <td><input type="text" class="w-full p-2 border rounded"></td>
+    <td><input type="text" class="w-full p-2 border rounded"></td>
+  `;
+  table.appendChild(row);
+}
+
+function generateExcel(docId, tableId) {
+  const table = document.getElementById(tableId);
+  const rows = Array.from(table.querySelectorAll('tbody tr')).map(row => {
+    const cells = row.querySelectorAll('input');
+    return {
+      Material: cells[0].value || '',
+      Unit: cells[1].value || '',
+      Quantity: cells[2].value || ''
+    };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows, {header:["Material", "Unit", "Quantity"]});
+  XLSX.utils.book_append_sheet(wb, ws, "Материалы");
+
+  const comment = document.getElementById('comment-' + docId).value;
+  const arrival = document.getElementById('arrival-' + docId).value;
+  const metaSheet = XLSX.utils.aoa_to_sheet([
+    ["Комментарий", comment],
+    ["Дата поступления на склад", arrival]
+  ]);
+  XLSX.utils.book_append_sheet(wb, metaSheet, "Информация");
+
+  XLSX.writeFile(wb, "Материалы_" + docId + ".xlsx");
 }
 
 function signDoc(id) {
@@ -88,4 +168,5 @@ function rejectDoc(id) {
 }
 
 renderPendingDocs();
-</script></body></html>
+</script>
+</body></html>
